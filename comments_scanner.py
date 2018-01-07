@@ -136,8 +136,8 @@ class CommentsScanner:
                 self.log.info("Inserting into db: " + str(record))
                 user_table.insert(record)
                 receiving_address = post_body['account']
-                reply_text = str(receiving_user) + ' isnt registered with the bot so Ive made an account for them, ' \
-                             + 'they can access it by DM the bot'
+                reply_text = str(receiving_user) + ' isn\'t registered, so I made an account for them. ' \
+                             + 'They can access it by messaging the bot.'
                 try:
                     self.comment_reply(comment, reply_text)
                 except:
@@ -148,8 +148,8 @@ class CommentsScanner:
             self.send_tip(comment, amount, sender_user_address, receiving_address, receiving_user)
 
         else:
-            reply_text = 'Hi, /u/' + str(comment.author.name) + ' please register with the bot by sending it a' \
-                         + ' message and it will make you an account'
+            reply_text = 'Hi /u/' + str(comment.author.name) + ', please register with the bot by sending it a' \
+                         + ' message.'
             self.comment_reply(comment, reply_text)
 
         # Add to db
