@@ -6,8 +6,11 @@ password = ''
 
 wallet_id = ''
 
-connection_string = ''
-node_ip = 7076
-node_port = ''
+# default to a sqlite db
+# this file will be automatically generated at startup if it does not exist
+connection_string = 'sqlite:///reddit.db'
 
-subreddit = ''
+node_ip = 7076
+node_port = '127.0.0.1'
+
+subreddit = 'RaiBlocks'
