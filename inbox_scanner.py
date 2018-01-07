@@ -16,7 +16,7 @@ class InboxScanner:
         self.rest_wallet = rest_wallet
         self.subreddit = subreddit
         log_file_name = "inbox_scanner_" + str(datetime.datetime.now().isoformat()) + ".log"
-        logging.basicConfig(filename=log_file_name, level=logging.INFO, format='%(asctime)s %(message)s')
+        logging.basicConfig(filename=log_file_name, level=logging.INFO, format='%(asctime)s %(levelname)s %(message)s')
         log = logging.getLogger("inbox")
         self.log = log
 
@@ -90,6 +90,9 @@ class InboxScanner:
         item.reply(reply_message)
 
     def parse_item(self, item):
+        self.log.info("Item is as follows:")
+        self.log.info((vars(item)))
+
         user_table = self.db['user']
         message_table = self.db['message']
         self.log.info("\n\n")
@@ -103,7 +106,8 @@ class InboxScanner:
                 self.log.info(commands[0])
                 if commands[0] == '!help':
                     reply_message = 'Help\n\n Reply with command in the body of text:\n\n  !balance - get' \
-                                    + ' your balance\n\n  !send <amount> <address>\n\n'
+                                    + ' your balance\n\n  !send <amount> <address>\n\nMore info: ' \
+                                    + 'https://www.reddit.com/r/RaiBlocks_tipbot/wiki/index'
                     item.reply(reply_message)
 
                 elif commands[0] == '!address':
@@ -120,8 +124,17 @@ class InboxScanner:
                     self.log.info('Sending raiblocks')
                     self.prepare_send(commands, item, user_table)
             else:
-                self.log.info('Not in DB - not registering')
-                #self.register_account(item, user_table)
+                self.log.info('Not in DB')
+                commands = item.body.split(" ")
+                if commands[0] == '!register':
+                    self.log.info('Registering account')
+                    self.register_account(item, user_table)
+
+                #else:
+                #    self.log.info("Could not parse message")
+                #    reply_message = 'Your account is not registered and I could not parse your command\n\n' + \
+                #                    ' Reply with !register in the body of the message to begin\n\n'
+                #    item.reply(reply_message)
 
         # Add message to database
         record = dict(user_id=item.author.name, message_id=item.name)
@@ -134,7 +147,7 @@ class InboxScanner:
 
         try:
             for item in self.reddit_client.inbox.stream():
-                self.parse_item(item, )
+                self.parse_item(item)
 
         except (praw.exceptions.PRAWException, prawcore.exceptions.PrawcoreException) as e:
             self.log.error("could not log in because: " + str(e))
