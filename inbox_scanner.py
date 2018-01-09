@@ -1,28 +1,27 @@
-import datetime
-import logging
 import sys
 import traceback
 
 import praw.exceptions
 import prawcore
 
+import util
+
 
 class InboxScanner:
 
-    def __init__(self, db, reddit_client, wallet_id, rest_wallet, subreddit):
+    def __init__(self, db, reddit_client, wallet_id, rest_wallet, subreddit, tipper, log):
         self.wallet_id = wallet_id
         self.db = db
         self.reddit_client = reddit_client
         self.rest_wallet = rest_wallet
         self.subreddit = subreddit
-        log_file_name = "inbox_scanner_" + str(datetime.datetime.now().isoformat()) + ".log"
-        logging.basicConfig(filename=log_file_name, level=logging.INFO, format='%(asctime)s %(levelname)s %(message)s')
-        log = logging.getLogger("inbox")
         self.log = log
 
-    def transfer_funds(self, amount, item, user_table, send_address):
+        self.tipper = tipper
+
+    def transfer_funds(self, amount, item, send_address):
         try:
-            user_data = user_table.find_one(user_id=item.author.name)
+            user_data = util.find_user(item.author.name, self.log, self.db)
             user_address = user_data['xrb_address']
             data = {'action': 'account_balance', 'account': user_address}
             parsed_json = self.rest_wallet.post_to_wallet(data, self.log)
@@ -48,7 +47,7 @@ class InboxScanner:
             tb = traceback.format_exc()
             self.log.error(tb)
 
-    def prepare_send(self, commands, item, user_table):
+    def prepare_send(self, commands, item):
         amount = commands[1]
         send_address = commands[2]
         data = {"action": "validate_account_number", "account": send_address}
@@ -58,10 +57,10 @@ class InboxScanner:
             reply_message = 'Invalid destination address : %s' % send_address
             item.reply(reply_message)
         else:
-            self.transfer_funds(amount, item, user_table, send_address)
+            self.transfer_funds(amount, item, send_address)
 
-    def get_balance(self, item, user_table):
-        user_data = user_table.find_one(user_id=item.author.name)
+    def get_balance(self, item):
+        user_data = util.find_user(item.author.name, self.log, self.db)
         user_address = user_data['xrb_address']
         data = {'action': 'account_balance', 'account': user_address}
         parsed_json = self.rest_wallet.post_to_wallet(data, self.log)
@@ -89,61 +88,110 @@ class InboxScanner:
 
         item.reply(reply_message)
 
-    def parse_item(self, item):
-        self.log.info("Item is as follows:")
-        self.log.info((vars(item)))
+    def process_mention(self, item):
+        comment = None
+        command = ["/u/RaiBlocks_TipBot", "u/RaiBlocks_TipBot", "/u/giftXRB", "u/giftXRB"]
+        try:
+            self.log.info("Mention Found")
+            comment_parts = item.name.split("_")
+            comment_id = comment_parts[len(comment_parts) - 1]
+            self.log.info("Comment ID: " + comment_id)
+            comment = self.reddit_client.comment(comment_id)
 
-        user_table = self.db['user']
-        message_table = self.db['message']
+            submission_parts = comment.link_id.split("_")
+            submission_id = submission_parts[len(submission_parts) - 1]
+            submission = self.reddit_client.submission(submission_id)
+            comment.link_author = submission.author.name
+
+        except AttributeError:
+            self.log.error("Lazy loading may have failed")
+        except:
+            reply_message = 'An error came up, your request could not be processed\n\n' + \
+                            ' Paging /u/valentulus_menskr error id: ' + item.name + '\n\n'
+            item.reply(reply_message)
+            self.log.error("Unexpected error: " + str(sys.exc_info()[0]))
+            tb = traceback.format_exc()
+            self.log.error(tb)
+
+        if comment is not None:
+            self.tipper.parse_comment(comment, command, True)
+
+    def parse_item(self, item):
         self.log.info("\n\n")
         self.log.info("New Inbox Received")
+        message_table = self.db['message']
+
         if message_table.find_one(message_id=item.name):
             self.log.info('Already in db, ignore')
         else:
-            if user_table.find_one(user_id=item.author.name):
-                self.log.info('Found Author ' + str(item.author.name))
-                commands = item.body.split(" ")
-                self.log.info(commands[0])
-                if commands[0] == '!help':
-                    reply_message = 'Help\n\n Reply with command in the body of text:\n\n  !balance - get' \
-                                    + ' your balance\n\n  !send <amount> <address>\n\nMore info: ' \
-                                    + 'https://www.reddit.com/r/RaiBlocks_tipbot/wiki/index'
-                    item.reply(reply_message)
+            user_table = self.db['user']
 
-                elif commands[0] == '!address':
-                    user_data = user_table.find_one(user_id=item.author.name)
-                    self.log.info(user_data['xrb_address'])
-                    reply_message = 'Your deposit address is :\n\n%s' % user_data['xrb_address']
-                    item.reply(reply_message)
+            self.log.info("Item is as follows:")
+            self.log.info((vars(item)))
 
-                elif commands[0] == '!balance':
-                    self.log.info('Getting balance')
-                    self.get_balance(item, user_table)
-
-                elif commands[0] == '!send':
-                    self.log.info('Sending raiblocks')
-                    self.prepare_send(commands, item, user_table)
+            self.log.info("Attribute - Item was comment: " + str(item.was_comment))
+            if item.was_comment:
+                self.log.info("Comment subject: " + str(item.subject))
+                if item.subject == 'username mention':
+                    self.process_mention(item)
             else:
-                self.log.info('Not in DB')
-                commands = item.body.split(" ")
-                if commands[0] == '!register':
-                    self.log.info('Registering account')
-                    self.register_account(item, user_table)
+                user_data = util.find_user(item.author.name, self.log, self.db)
+                if user_data is not None:
+                    self.log.info('Found Author ' + str(item.author.name))
+                    commands = item.body.split(" ")
+                    self.log.info(commands[0])
+                    if commands[0] == '!help':
+                        reply_message = 'Help\n\n Reply with command in the body of text:\n\n  !balance - get' \
+                                        + ' your balance\n\n  !send <amount> <address>\n\nMore info: ' \
+                                        + 'https://www.reddit.com/r/RaiBlocks_tipbot/wiki/index'
+                        item.reply(reply_message)
 
-                #else:
-                #    self.log.info("Could not parse message")
-                #    reply_message = 'Your account is not registered and I could not parse your command\n\n' + \
-                #                    ' Reply with !register in the body of the message to begin\n\n'
-                #    item.reply(reply_message)
+                    elif commands[0] == '!address':
+                        self.log.info(user_data['xrb_address'])
+                        reply_message = 'Your deposit address is :\n\n%s' % user_data['xrb_address']
+                        item.reply(reply_message)
 
-        # Add message to database
-        record = dict(user_id=item.author.name, message_id=item.name)
-        self.log.info("Inserting into db: " + str(record))
-        message_table.insert(record)
+                    elif commands[0] == '!balance':
+                        self.log.info('Getting balance')
+                        self.get_balance(item)
+
+                    elif commands[0] == '!send':
+                        self.log.info('Sending raiblocks')
+                        self.prepare_send(commands, item)
+
+                    elif commands[0] == '!register':
+                        self.log.info("Already Registered")
+                        reply_message = 'Your account is already registered\n\nTry the !help command\n\nMore info: ' \
+                                        + 'https://www.reddit.com/r/RaiBlocks_tipbot/wiki/index'
+                        item.reply(reply_message)
+
+                    else:
+                        self.log.info("Bad message")
+                        reply_message = 'Sorry I could not parse your request.\n\nWhen making requests only put' + \
+                                        ' the command in the message body with no other text\n\nTry the !help' + \
+                                        ' command\n\nMore info: ' \
+                                        + 'https://www.reddit.com/r/RaiBlocks_tipbot/wiki/index'
+                        item.reply(reply_message)
+                else:
+                    self.log.info(str(item.author.name) + ' Not in DB')
+                    commands = item.body.split(" ")
+                    if commands[0] == '!register':
+                        self.log.info('Registering account')
+                        self.register_account(item, user_table)
+
+                    else:
+                        self.log.info("Could not parse message")
+                        reply_message = 'Your account is not registered and I could not parse your command\n\n' + \
+                                        ' Reply with !register in the body of the message to begin\n\n'
+                        item.reply(reply_message)
+
+            # Add message to database
+            record = dict(user_id=item.author.name, message_id=item.name)
+            self.log.info("Inserting into db: " + str(record))
+            message_table.insert(record)
 
     def scan_inbox(self):
-
-        self.log.info('Tracking r/' + self.subreddit + ' Comments')
+        self.log.info('Tracking Inbox')
 
         try:
             for item in self.reddit_client.inbox.stream():
