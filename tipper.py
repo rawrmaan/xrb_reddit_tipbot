@@ -21,9 +21,31 @@ class Tipper:
         self.log.info(reply_text)
         comment.reply(reply_text)
 
+    @staticmethod
+    def is_usd(amount):
+        if amount.startswith("$"):
+            return True
+        return False
+
     def send_tip(self, comment, amount, sender_user_address, receiving_address, receiving_user, prior_reply_text):
         try:
-            self.log.info("Sending amount: " + str(amount))
+            rate = util.get_price()
+            if rate is None:
+                raise ValueError('Could not retrieve rate')
+
+            formatted_rate = str(format(float(rate), '.3f'))
+            formatted_amount = amount
+            if self.is_usd(amount):
+                amount = amount[1:]
+                usd = amount
+                formatted_usd = usd
+                amount = float(amount) / rate
+                formatted_amount = str(format(float(amount), '.6f'))
+            else:
+                usd = float(amount) * rate
+                formatted_usd = str(format(float(usd), '.3f'))
+
+            self.log.info("Sending amount: " + str(amount) + "XRB, $" + str(usd))
             data = {'action': 'account_balance',
                     'account': sender_user_address}
             post_body = self.rest_wallet.post_to_wallet(data, self.log)
@@ -51,8 +73,9 @@ class Tipper:
                             'destination': receiving_address, 'amount': int(raw_send)}
                     post_body = self.rest_wallet.post_to_wallet(data, self.log)
                     reply_text = reply_text + \
-                                 'Tipped %s to /u/%s\n\n[Block Link](https://raiblocks.net/block/index.php?h=%s)' \
-                                 % (amount, receiving_user, str(post_body['block']))
+                                 'Tipped %s XRB or $%s to /u/%s\n\nUSD conversion rate of $%s\n\n[Block Link](https://raiblocks.net/block/index.php?h=%s)' \
+                                 % (formatted_amount, formatted_usd, receiving_user, formatted_rate,
+                                    str(post_body['block']))
                     reply_text = reply_text + "  \n\nGo to the [wiki]" + \
                                  "(https://www.reddit.com/r/RaiBlocks_tipbot/wiki/index) for more info"
                 else:
@@ -107,7 +130,8 @@ class Tipper:
                 user_table.insert(record)
                 receiving_address = post_body['account']
 
-                reply_text = str(receiving_user) + ' isn\'t registered, so I made an account for them. ' \
+                reply_text = str(receiving_user) \
+                             + ' isn\'t registered, so I made an account for them. ' \
                              + 'They can access it by messaging the bot.'
 
             self.send_tip(comment, amount, sender_user_address, receiving_address, receiving_user, reply_text)
@@ -115,7 +139,8 @@ class Tipper:
         else:
             self.log.info('Sender NOT in db')
             reply_text = 'Hi /u/' + str(comment.author.name) + ', please register with the bot by sending it a' \
-                         + ' message.'
+                         + ' message.  \n\nGo to the [wiki]' + \
+                         "(https://www.reddit.com/r/RaiBlocks_tipbot/wiki/index) for more info"
 
             self.comment_reply(comment, reply_text)
 
@@ -129,6 +154,9 @@ class Tipper:
     @staticmethod
     def isfloat(value):
         try:
+            if len(value) > 0 and value.startswith("$"):
+                value = value[1:]
+
             float_val = float(value)
             # Maximum tip per command is 5 XRB (currently valued $150)
             # This is to prevent mistaken tips of large sums
@@ -180,6 +208,8 @@ class Tipper:
         self.log.info('DB updated')
 
     def process_command(self, comment, receiving_user, amount):
+        # parse reddit username
+        receiving_user = self.parse_user(receiving_user)
         self.log.info("Receiving user: " + receiving_user)
         self.process_tip(amount, comment, receiving_user)
 
@@ -205,7 +235,18 @@ class Tipper:
         return False
 
     def process_single_parameter_tip(self, comment, amount):
-        receiving_user = comment.link_author
+        # Is this a root comment?
+        is_root = comment.is_root
+        self.log.info("Root comment? " + str(comment.is_root))
+        if is_root:
+            receiving_user = comment.link_author
+        else:
+            # Get parent
+            parent = comment.parent()
+            receiving_user = parent.author.name
+            self.log.info("Parent: ")
+            self.log.info(vars(parent))
+
         self.process_command(comment, receiving_user, amount)
 
     def parse_tip(self, comment, parts_of_comment, command_index, mention):
@@ -257,7 +298,6 @@ class Tipper:
                     found = True
                     self.log.info('\n\n')
                     self.log.info('Found tip reference in comments')
-
                     self.log.info("Comment is as follows:")
                     self.log.info((vars(comment)))
 

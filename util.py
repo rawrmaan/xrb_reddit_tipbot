@@ -3,6 +3,7 @@ from functools import wraps
 from socket import error as SocketError
 
 import praw.exceptions
+import requests
 
 
 def handle_api_exceptions(max_attempts=1):
@@ -62,3 +63,14 @@ def find_user(user_id, logger, db):
             logger.error("Multiple entries found")
         size += 1
     return target_row
+
+
+def get_price():
+    try:
+        r = requests.get('https://api.coinmarketcap.com/v1/ticker/raiblocks/')
+        payload = r.json()[0]["price_usd"]
+        result = float(payload)
+    except:
+        result = None
+
+    return result

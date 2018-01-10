@@ -35,7 +35,8 @@ class InboxScanner:
                 data = {'action': 'send', 'wallet': self.wallet_id, 'source': user_address, 'destination': send_address,
                         'amount': int(raw_send)}
                 parsed_json = self.rest_wallet.post_to_wallet(data, self.log)
-                reply_message = 'Sent %s to %s\n\nBlock: %s' % (amount, send_address, str(parsed_json['block']))
+                reply_message = 'Sent %s to %s\n\n[Block Link](https://raiblocks.net/block/index.php?h=%s)' % (
+                    amount, send_address, str(parsed_json['block']))
                 item.reply(reply_message)
             else:
                 reply_message = 'Not enough in your account to transfer\n\n'
@@ -69,7 +70,13 @@ class InboxScanner:
         rai_balance = self.rest_wallet.post_to_wallet(data, self.log)
         self.log.info(rai_balance['amount'])
         xrb_balance = format((float(rai_balance['amount']) / 1000000.0), '.6f')
-        reply_message = 'Your balance is :\n\n %s' % xrb_balance
+        rate = util.get_price()
+        if rate is not None:
+            usd = float(xrb_balance) * rate
+            reply_message = 'Your balance is :\n\n %s XRB or $%s USD \n\nUSD conversion rate of $%s' % \
+                            (xrb_balance, str(format(float(usd), '.3f')), str(format(float(rate), '.3f')))
+        else:
+            reply_message = 'Your balance is :\n\n %s XRB' % xrb_balance
         item.reply(reply_message)
 
     def register_account(self, item, user_table):
@@ -139,27 +146,27 @@ class InboxScanner:
                 if user_data is not None:
                     self.log.info('Found Author ' + str(item.author.name))
                     commands = item.body.split(" ")
-                    self.log.info(commands[0])
-                    if commands[0] == '!help':
+                    self.log.info(item.body)
+                    if '!help' in item.body:
                         reply_message = 'Help\n\n Reply with command in the body of text:\n\n  !balance - get' \
                                         + ' your balance\n\n  !send <amount> <address>\n\nMore info: ' \
                                         + 'https://www.reddit.com/r/RaiBlocks_tipbot/wiki/index'
                         item.reply(reply_message)
 
-                    elif commands[0] == '!address':
+                    elif '!address' in item.body:
                         self.log.info(user_data['xrb_address'])
                         reply_message = 'Your deposit address is :\n\n%s' % user_data['xrb_address']
                         item.reply(reply_message)
 
-                    elif commands[0] == '!balance':
+                    elif '!balance' in item.body:
                         self.log.info('Getting balance')
                         self.get_balance(item)
 
-                    elif commands[0] == '!send':
+                    elif '!send' in item.body:
                         self.log.info('Sending raiblocks')
                         self.prepare_send(commands, item)
 
-                    elif commands[0] == '!register':
+                    elif '!register' in item.body:
                         self.log.info("Already Registered")
                         reply_message = 'Your account is already registered\n\nTry the !help command\n\nMore info: ' \
                                         + 'https://www.reddit.com/r/RaiBlocks_tipbot/wiki/index'
@@ -168,14 +175,13 @@ class InboxScanner:
                     else:
                         self.log.info("Bad message")
                         reply_message = 'Sorry I could not parse your request.\n\nWhen making requests only put' + \
-                                        ' the command in the message body with no other text\n\nTry the !help' + \
+                                        ' one command in the message body with no other text\n\nTry the !help' + \
                                         ' command\n\nMore info: ' \
                                         + 'https://www.reddit.com/r/RaiBlocks_tipbot/wiki/index'
                         item.reply(reply_message)
                 else:
                     self.log.info(str(item.author.name) + ' Not in DB')
-                    commands = item.body.split(" ")
-                    if commands[0] == '!register':
+                    if '!register' in item.body:
                         self.log.info('Registering account')
                         self.register_account(item, user_table)
 
