@@ -198,7 +198,7 @@ class Tipper:
                 self.comment_reply(comment,
                                    'Tip command is invalid. Tip with any of the following formats:  \n\n' +
                                    '`!tipxrb <username> <amount>`  \n\n`\u\RaiBlocks_TipBot <username> <amount>`  \n\n'
-                                   + '`\u\giftXRB <username> <amount>`  \n\n  Amount must be greater than 0'
+                                   + '`\u\XRB4U <username> <amount>`  \n\n  Amount must be greater than 0'
                                    + ' and less than 5  \n\nGo to the [wiki]' +
                                    '(https://www.reddit.com/r/RaiBlocks_tipbot/wiki/index) for more commands')
         record = dict(

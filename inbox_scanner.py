@@ -91,13 +91,13 @@ class InboxScanner:
         # Reply
         explorer_link = 'https://raiblocks.net/account/index.php?acc=' + parsed_json['account']
         reply_message = 'Thanks for registering, your deposit address is ' + parsed_json['account'] + \
-                        ' and you can see your balance here ' + explorer_link + '\r\nFor more details reply with !help'
+                        ' and you can see your balance here ' + explorer_link + '\r\nFor more details reply with "help"'
 
         item.reply(reply_message)
 
     def process_mention(self, item):
         comment = None
-        command = ["/u/RaiBlocks_TipBot", "u/RaiBlocks_TipBot", "/u/giftXRB", "u/giftXRB"]
+        command = ["/u/RaiBlocks_TipBot", "u/RaiBlocks_TipBot", "/u/XRB4U", "u/XRB4U"]
         try:
             self.log.info("Mention Found")
             comment_parts = item.name.split("_")
@@ -110,8 +110,6 @@ class InboxScanner:
             submission = self.reddit_client.submission(submission_id)
             comment.link_author = submission.author.name
 
-        except AttributeError:
-            self.log.error("Lazy loading may have failed")
         except:
             reply_message = 'An error came up, your request could not be processed\n\n' + \
                             ' Paging /u/valentulus_menskr error id: ' + item.name + '\n\n'
@@ -147,48 +145,48 @@ class InboxScanner:
                     self.log.info('Found Author ' + str(item.author.name))
                     commands = item.body.split(" ")
                     self.log.info(item.body)
-                    if '!help' in item.body:
-                        reply_message = 'Help\n\n Reply with command in the body of text:\n\n  !balance - get' \
-                                        + ' your balance\n\n  !send <amount> <address>\n\nMore info: ' \
+                    if 'help' in item.body:
+                        reply_message = 'Help\n\n Reply with the command in the body of text:\n\n  balance - get' \
+                                        + ' your balance\n\n  send <amount> <address>\n\nMore info: ' \
                                         + 'https://www.reddit.com/r/RaiBlocks_tipbot/wiki/index'
                         item.reply(reply_message)
 
-                    elif '!address' in item.body:
+                    elif 'address' in item.body:
                         self.log.info(user_data['xrb_address'])
                         reply_message = 'Your deposit address is :\n\n%s' % user_data['xrb_address']
                         item.reply(reply_message)
 
-                    elif '!balance' in item.body:
+                    elif 'balance' in item.body:
                         self.log.info('Getting balance')
                         self.get_balance(item)
 
-                    elif '!send' in item.body:
+                    elif 'send' in item.body:
                         self.log.info('Sending raiblocks')
                         self.prepare_send(commands, item)
 
-                    elif '!register' in item.body:
+                    elif 'register' in item.body:
                         self.log.info("Already Registered")
-                        reply_message = 'Your account is already registered\n\nTry the !help command\n\nMore info: ' \
+                        reply_message = 'Your account is already registered\n\nTry the "help" command\n\nMore info: ' \
                                         + 'https://www.reddit.com/r/RaiBlocks_tipbot/wiki/index'
                         item.reply(reply_message)
 
                     else:
                         self.log.info("Bad message")
                         reply_message = 'Sorry I could not parse your request.\n\nWhen making requests only put' + \
-                                        ' one command in the message body with no other text\n\nTry the !help' + \
+                                        ' one command in the message body with no other text\n\nTry the "help"' + \
                                         ' command\n\nMore info: ' \
                                         + 'https://www.reddit.com/r/RaiBlocks_tipbot/wiki/index'
                         item.reply(reply_message)
                 else:
                     self.log.info(str(item.author.name) + ' Not in DB')
-                    if '!register' in item.body:
+                    if 'register' in item.body:
                         self.log.info('Registering account')
                         self.register_account(item, user_table)
 
                     else:
                         self.log.info("Could not parse message")
                         reply_message = 'Your account is not registered and I could not parse your command\n\n' + \
-                                        ' Reply with !register in the body of the message to begin\n\n'
+                                        ' Reply with "register" in the body of the message to begin\n\n'
                         item.reply(reply_message)
 
             # Add message to database
