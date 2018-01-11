@@ -97,7 +97,7 @@ class InboxScanner:
 
     def process_mention(self, item):
         comment = None
-        command = ["/u/RaiBlocks_TipBot", "u/RaiBlocks_TipBot", "/u/XRB4U", "u/XRB4U"]
+        command = ["/u/giftXRB", "u/giftXRB"]
         try:
             self.log.info("Mention Found")
             comment_parts = item.name.split("_")
@@ -129,65 +129,18 @@ class InboxScanner:
         if message_table.find_one(message_id=item.name):
             self.log.info('Already in db, ignore')
         else:
-            user_table = self.db['user']
 
             self.log.info("Item is as follows:")
             self.log.info((vars(item)))
 
             self.log.info("Attribute - Item was comment: " + str(item.was_comment))
+
+            # Only care about mentions for the giveaway bot
+
             if item.was_comment:
                 self.log.info("Comment subject: " + str(item.subject))
                 if item.subject == 'username mention':
                     self.process_mention(item)
-            else:
-                user_data = util.find_user(item.author.name, self.log, self.db)
-                if user_data is not None:
-                    self.log.info('Found Author ' + str(item.author.name))
-                    commands = item.body.split(" ")
-                    self.log.info(item.body)
-                    if 'help' in item.body:
-                        reply_message = 'Help\n\n Reply with the command in the body of text:\n\n  balance - get' \
-                                        + ' your balance\n\n  send <amount> <address>\n\nMore info: ' \
-                                        + 'https://www.reddit.com/r/RaiBlocks_tipbot/wiki/index'
-                        item.reply(reply_message)
-
-                    elif 'address' in item.body:
-                        self.log.info(user_data['xrb_address'])
-                        reply_message = 'Your deposit address is :\n\n%s' % user_data['xrb_address']
-                        item.reply(reply_message)
-
-                    elif 'balance' in item.body:
-                        self.log.info('Getting balance')
-                        self.get_balance(item)
-
-                    elif 'send' in item.body:
-                        self.log.info('Sending raiblocks')
-                        self.prepare_send(commands, item)
-
-                    elif 'register' in item.body:
-                        self.log.info("Already Registered")
-                        reply_message = 'Your account is already registered\n\nTry the "help" command\n\nMore info: ' \
-                                        + 'https://www.reddit.com/r/RaiBlocks_tipbot/wiki/index'
-                        item.reply(reply_message)
-
-                    else:
-                        self.log.info("Bad message")
-                        reply_message = 'Sorry I could not parse your request.\n\nWhen making requests only put' + \
-                                        ' one command in the message body with no other text\n\nTry the "help"' + \
-                                        ' command\n\nMore info: ' \
-                                        + 'https://www.reddit.com/r/RaiBlocks_tipbot/wiki/index'
-                        item.reply(reply_message)
-                else:
-                    self.log.info(str(item.author.name) + ' Not in DB')
-                    if 'register' in item.body:
-                        self.log.info('Registering account')
-                        self.register_account(item, user_table)
-
-                    else:
-                        self.log.info("Could not parse message")
-                        reply_message = 'Your account is not registered and I could not parse your command\n\n' + \
-                                        ' Reply with "register" in the body of the message to begin\n\n'
-                        item.reply(reply_message)
 
             # Add message to database
             record = dict(user_id=item.author.name, message_id=item.name)

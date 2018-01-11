@@ -68,18 +68,27 @@ class Tipper:
 
                 # check amount left
                 if int(rai_send) <= int(rai_balance['amount']):
-                    self.log.info('Tipping now')
+                    self.log.info('Gifting now')
+                    giveaway_xrb = int(rai_balance['amount']) / 1000000
+                    redditors_left = giveaway_xrb / 0.0001
+
                     data = {'action': 'send', 'wallet': self.wallet_id, 'source': sender_user_address,
                             'destination': receiving_address, 'amount': int(raw_send)}
                     post_body = self.rest_wallet.post_to_wallet(data, self.log)
                     reply_text = reply_text + \
-                                 'Tipped %s XRB or $%s to /u/%s\n\nUSD conversion rate of $%s\n\n[Block Link](https://raiblocks.net/block/index.php?h=%s)' \
-                                 % (formatted_amount, formatted_usd, receiving_user, formatted_rate,
+                                 'Congratulations! /u/%s has been gifted %s XRB or $%s \n\nUSD conversion rate of $%s\n\n[Block Link](https://raiblocks.net/block/index.php?h=%s)' \
+                                 % (receiving_user, formatted_amount, formatted_usd, formatted_rate,
                                     str(post_body['block']))
-                    reply_text = reply_text + "  \n\nGo to the [wiki]" + \
-                                 "(https://www.reddit.com/r/RaiBlocks_tipbot/wiki/index) for more info"
+                    reply_text = reply_text + "  \n\nAn account with /u/RaiBlocks_TipBot has been registered"
+                    reply_text = reply_text + "  \n\nThe GiveAway balance is %s, so I can gift %s more redditors!" % (
+                        str(giveaway_xrb), str(redditors_left))
+                    reply_text = reply_text + "  \n\nGo to the [GiveAway Wiki]" + \
+                                 "(https://www.reddit.com/r/RaiBlocks_tipbot/wiki/giveaway) for more info"
                 else:
-                    reply_text = reply_text + 'Not enough in your account to tip'
+                    reply_text = reply_text + 'The GiveAway bot is all out of gifts! Consider tipping this bot "+' \
+                                              '"to replenish its gifts'
+                    reply_text = reply_text + "  \n\nGo to the [GiveAway Wiki]" + \
+                                 "(https://www.reddit.com/r/RaiBlocks_tipbot/wiki/giveaway) for more info"
 
                 self.comment_reply(comment, reply_text)
         except TypeError as e:
@@ -104,6 +113,8 @@ class Tipper:
         # See if we have an author xrb address and a to xrb address, if not invite to register
         self.log.info("Looking for sender " + "'" + comment.author.name + "'" + " in db")
 
+        comment.author.name = "giftxrb"
+
         sender_user_data = util.find_user(comment.author.name, self.log, self.db)
 
         if sender_user_data is not None:
@@ -115,7 +126,13 @@ class Tipper:
 
             user_data = util.find_user(receiving_user, self.log, self.db)
             if user_data is not None:
-                receiving_address = user_data['xrb_address']
+                # reply that registered users cannot be gifted
+                reply_message = "The user /u/" + receiving_user + "cannot be gifted because they are already" + \
+                                " registered with the TipBot\n\n Pass the gift to all newcomers to RaiBlocks!" + \
+                                "\n\n For more info on the giveaway, check out the" + \
+                                " [GiveAway Wiki](https://www.reddit.com/r/RaiBlocks_tipbot/wiki/giveaway)"
+
+                self.comment_reply(comment, reply_message)
             else:
                 self.log.info("Receiving User " + "'" + receiving_user + "'" + " Not in DB - registering")
                 # Generate address
@@ -130,11 +147,7 @@ class Tipper:
                 user_table.insert(record)
                 receiving_address = post_body['account']
 
-                reply_text = str(receiving_user) \
-                             + ' isn\'t registered, so I made an account for them. ' \
-                             + 'They can access it by messaging the bot.'
-
-            self.send_tip(comment, amount, sender_user_address, receiving_address, receiving_user, reply_text)
+                self.send_tip(comment, amount, sender_user_address, receiving_address, receiving_user, reply_text)
 
         else:
             self.log.info('Sender NOT in db')
@@ -249,7 +262,7 @@ class Tipper:
 
         self.process_command(comment, receiving_user, amount)
 
-    def parse_tip(self, comment, parts_of_comment, command_index, mention):
+    def parse_tip(self, comment):
         # get a reference to the table 'comments'
         comment_table = self.db['comments']
 
@@ -257,49 +270,16 @@ class Tipper:
         if comment_table.find_one(comment_id=comment.fullname):
             self.log.info('Already in db, ignore')
         else:
-            length = len(parts_of_comment)
-            passing = False
-
-            # check that index+2 exists in array
-            if command_index + 2 < length:
-                # check for both tip formats
-                # !tipxrb <user> <amount>
-                # !tipxrb <amount>
-                receiving_user = parts_of_comment[command_index + 1]
-                amount = parts_of_comment[command_index + 2]
-                if self.validate_double_parameter_tip(parts_of_comment, command_index):
-                    self.process_command(comment, receiving_user, amount)
-                    passing = True
-                elif self.validate_single_parameter_tip(parts_of_comment, command_index):
-                    amount = parts_of_comment[command_index + 1]
-                    self.process_single_parameter_tip(comment, amount)
-                    passing = True
-
-            elif command_index + 1 < length:
-                # check for one tip format
-                # !tipxrb <amount>
-                if self.validate_single_parameter_tip(parts_of_comment, command_index):
-                    amount = parts_of_comment[command_index + 1]
-                    self.process_single_parameter_tip(comment, amount)
-                    passing = True
-
-            if not passing:
-                # invalid command
-                self.invalid_formatting(comment, mention)
+            amount = "0.0001"
+            self.process_single_parameter_tip(comment, amount)
 
     def parse_comment(self, comment, commands, mention):
-        comment_split_newlines = comment.body.lower().splitlines()
-        found = False
-        for line in comment_split_newlines:
-            parts_of_comment = line.split(" ")
-            for command in commands:
-                command = command.lower()
-                if command in parts_of_comment and not found:
-                    found = True
-                    self.log.info('\n\n')
-                    self.log.info('Found tip reference in comments')
-                    self.log.info("Comment is as follows:")
-                    self.log.info((vars(comment)))
-
-                    command_index = parts_of_comment.index(command)
-                    self.parse_tip(comment, parts_of_comment, command_index, mention)
+        # Add to db
+        comment_table = self.db['comments']
+        record = dict(
+            comment_id=comment.fullname, to=None, amount=None, author=comment.author.name)
+        self.log.info("Inserting into db: " + str(record))
+        comment_table.insert(record)
+        self.log.info('DB updated')
+        #if comment.author.name.lower() != 'giftxrb':
+        #    self.parse_tip(comment)

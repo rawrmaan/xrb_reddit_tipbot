@@ -27,9 +27,9 @@ class InboxLauncher:
 
         self.subreddit = settings.subreddit
 
-        log_file_name = "inbox_scanner_" + str(datetime.datetime.now().isoformat()) + ".log"
+        log_file_name = "giveaway_scanner_" + str(datetime.datetime.now().isoformat()) + ".log"
         logging.basicConfig(filename=log_file_name, level=logging.INFO, format='%(asctime)s %(levelname)s %(message)s')
-        log = logging.getLogger("inbox")
+        log = logging.getLogger("giveaway")
 
         self.log = log
 
