@@ -139,7 +139,7 @@ class Tipper:
         else:
             self.log.info('Sender NOT in db')
             reply_text = 'Hi /u/' + str(comment.author.name) + ', please register with the bot by sending it a' \
-                         + ' message.  \n\nGo to the [wiki]' + \
+                         + ' private message.  \n\nGo to the [wiki]' + \
                          "(https://www.reddit.com/r/RaiBlocks_tipbot/wiki/index) for more info"
 
             self.comment_reply(comment, reply_text)
