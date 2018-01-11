@@ -85,7 +85,7 @@ class Tipper:
                     reply_text = reply_text + "  \n\nGo to the [GiveAway Wiki]" + \
                                  "(https://www.reddit.com/r/RaiBlocks_tipbot/wiki/giveaway) for more info"
                 else:
-                    reply_text = reply_text + 'The GiveAway bot is all out of gifts! Consider tipping this bot "+' \
+                    reply_text = reply_text + 'The GiveAway bot is all out of gifts! Consider tipping this bot ' \
                                               '"to replenish its gifts'
                     reply_text = reply_text + "  \n\nGo to the [GiveAway Wiki]" + \
                                  "(https://www.reddit.com/r/RaiBlocks_tipbot/wiki/giveaway) for more info"
@@ -127,7 +127,7 @@ class Tipper:
             user_data = util.find_user(receiving_user, self.log, self.db)
             if user_data is not None:
                 # reply that registered users cannot be gifted
-                reply_message = "The user /u/" + receiving_user + "cannot be gifted because they are already" + \
+                reply_message = "The user /u/" + receiving_user + " cannot be gifted because they are already" + \
                                 " registered with the TipBot\n\n Pass the gift to all newcomers to RaiBlocks!" + \
                                 "\n\n For more info on the giveaway, check out the" + \
                                 " [GiveAway Wiki](https://www.reddit.com/r/RaiBlocks_tipbot/wiki/giveaway)"
@@ -135,6 +135,8 @@ class Tipper:
                 self.comment_reply(comment, reply_message)
             else:
                 self.log.info("Receiving User " + "'" + receiving_user + "'" + " Not in DB - registering")
+                # ONLY REGISTER IF THE BOT HAS ENOUGH MONEY TO TIP
+                sdfgfdsERROR EROROR LOOK HERE
                 # Generate address
                 data = {'action': 'account_create',
                         'wallet': self.wallet_id}
@@ -276,3 +278,8 @@ class Tipper:
     def parse_comment(self, comment, commands, mention):
         if comment.author.name.lower() != 'giftxrb':
             self.parse_tip(comment)
+        else:
+            reply_message = "Please do not gift the gift bot  \n\nSpread the gift to all others on Reddit!"
+            reply_message = reply_message + "  \n\nGo to the [GiveAway Wiki]" + \
+                         "(https://www.reddit.com/r/RaiBlocks_tipbot/wiki/giveaway) for more info"
+            self.comment_reply(comment, reply_message)
