@@ -274,12 +274,5 @@ class Tipper:
             self.process_single_parameter_tip(comment, amount)
 
     def parse_comment(self, comment, commands, mention):
-        # Add to db
-        comment_table = self.db['comments']
-        record = dict(
-            comment_id=comment.fullname, to=None, amount=None, author=comment.author.name)
-        self.log.info("Inserting into db: " + str(record))
-        comment_table.insert(record)
-        self.log.info('DB updated')
-        #if comment.author.name.lower() != 'giftxrb':
-        #    self.parse_tip(comment)
+        if comment.author.name.lower() != 'giftxrb':
+            self.parse_tip(comment)
