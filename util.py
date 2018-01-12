@@ -56,7 +56,6 @@ def find_user(user_id, logger, db):
     target_row = None
 
     for row in db.query(statement):
-        print(row['user_id'], row['xrb_address'])
         if size == 0:
             target_row = row
         else:
