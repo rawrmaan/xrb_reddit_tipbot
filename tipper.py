@@ -64,7 +64,7 @@ class Tipper:
                 # check amount left
                 if int(rai_send) <= int(rai_balance['amount']):
                     self.log.info('Gifting now')
-                    giveaway_xrb = int(rai_balance['amount']) / 1000000
+                    giveaway_xrb = float(rai_balance['amount']) / 1000000.0
                     redditors_left = giveaway_xrb / 0.0001
 
                     data = {'action': 'send', 'wallet': self.wallet_id, 'source': sender_user_address,
@@ -76,7 +76,7 @@ class Tipper:
                                     str(post_body['block']))
                     reply_text = reply_text + "  \n\nAn account with /u/RaiBlocks_TipBot has been registered"
                     reply_text = reply_text + "  \n\nThe GiveAway balance is %s, so I can gift %s more redditors!" % (
-                        str(giveaway_xrb), str(redditors_left))
+                        str(giveaway_xrb), str(int(redditors_left)))
                     reply_text = reply_text + "  \n\nGo to the [GiveAway Wiki]" + \
                                  "(https://www.reddit.com/r/RaiBlocks_tipbot/wiki/giveaway) for more info"
                 else:
