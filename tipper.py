@@ -195,8 +195,8 @@ class Tipper:
             else:
                 self.comment_reply(comment,
                                    'Tip command is invalid. Tip with any of the following formats:  \n\n' +
-                                   '`!tipxrb <username> <amount>`  \n\n`\u\RaiBlocks_TipBot <username> <amount>`  \n\n'
-                                   + '`\u\XRB4U <username> <amount>`  \n\nGo to the [wiki]' +
+                                   '`!tipxrb <username> <amount>`  \n\n`/u/RaiBlocks_TipBot <username> <amount>`  \n\n'
+                                   + '`/u/XRB4U <username> <amount>`  \n\nGo to the [wiki]' +
                                    '(https://www.reddit.com/r/RaiBlocks_tipbot/wiki/index) for more commands')
         record = dict(
             comment_id=comment.fullname, to=None, amount=None, author=comment.author.name)
