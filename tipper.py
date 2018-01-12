@@ -27,7 +27,8 @@ class Tipper:
             return True
         return False
 
-    def send_tip(self, comment, amount, sender_user_address, receiving_address, receiving_user, prior_reply_text):
+    def send_tip(self, comment, amount, sender_user_address, receiving_address, receiving_user, prior_reply_text,
+                 rai_balance):
         try:
             rate = util.get_price()
             if rate is None:
@@ -46,12 +47,6 @@ class Tipper:
                 formatted_usd = str(format(float(usd), '.3f'))
 
             self.log.info("Sending amount: " + str(amount) + "XRB, $" + str(usd))
-            data = {'action': 'account_balance',
-                    'account': sender_user_address}
-            post_body = self.rest_wallet.post_to_wallet(data, self.log)
-            data = {'action': 'rai_from_raw', 'amount': int(
-                post_body['balance'])}
-            rai_balance = self.rest_wallet.post_to_wallet(data, self.log)
 
             # float of total send
             float_amount = float(amount)
@@ -136,20 +131,40 @@ class Tipper:
             else:
                 self.log.info("Receiving User " + "'" + receiving_user + "'" + " Not in DB - registering")
                 # ONLY REGISTER IF THE BOT HAS ENOUGH MONEY TO TIP
-                sdfgfdsERROR EROROR LOOK HERE
-                # Generate address
-                data = {'action': 'account_create',
-                        'wallet': self.wallet_id}
+
+                data = {'action': 'account_balance',
+                        'account': sender_user_address}
                 post_body = self.rest_wallet.post_to_wallet(data, self.log)
-                self.log.info("Receiving User new account: " + str(post_body['account']))
+                data = {'action': 'rai_from_raw', 'amount': int(
+                    post_body['balance'])}
+                rai_balance = self.rest_wallet.post_to_wallet(data, self.log)
+                float_amount = float(amount)
+                if float_amount > 0:
+                    rai_send = float_amount * 1000000
 
-                # Add to database
-                record = dict(user_id=receiving_user, xrb_address=post_body['account'])
-                self.log.info("Inserting into db: " + str(record))
-                user_table.insert(record)
-                receiving_address = post_body['account']
+                    # check amount left
+                    if int(rai_send) <= int(rai_balance['amount']):
 
-                self.send_tip(comment, amount, sender_user_address, receiving_address, receiving_user, reply_text)
+                        # Generate address
+                        data = {'action': 'account_create',
+                                'wallet': self.wallet_id}
+                        post_body = self.rest_wallet.post_to_wallet(data, self.log)
+                        self.log.info("Receiving User new account: " + str(post_body['account']))
+
+                        # Add to database
+                        record = dict(user_id=receiving_user, xrb_address=post_body['account'])
+                        self.log.info("Inserting into db: " + str(record))
+                        user_table.insert(record)
+                        receiving_address = post_body['account']
+
+                        self.send_tip(comment, amount, sender_user_address, receiving_address, receiving_user,
+                                      reply_text, rai_balance)
+                    else:
+                        reply_text = 'The GiveAway bot is all out of gifts! Consider tipping this bot ' \
+                                     '"to replenish its gifts'
+                        reply_text = reply_text + "  \n\nGo to the [GiveAway Wiki]" + \
+                                     "(https://www.reddit.com/r/RaiBlocks_tipbot/wiki/giveaway) for more info"
+                        self.comment_reply(comment, reply_text)
 
         else:
             self.log.info('Sender NOT in db')
@@ -281,5 +296,5 @@ class Tipper:
         else:
             reply_message = "Please do not gift the gift bot  \n\nSpread the gift to all others on Reddit!"
             reply_message = reply_message + "  \n\nGo to the [GiveAway Wiki]" + \
-                         "(https://www.reddit.com/r/RaiBlocks_tipbot/wiki/giveaway) for more info"
+                            "(https://www.reddit.com/r/RaiBlocks_tipbot/wiki/giveaway) for more info"
             self.comment_reply(comment, reply_message)
