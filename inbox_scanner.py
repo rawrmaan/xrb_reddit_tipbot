@@ -162,7 +162,14 @@ class InboxScanner:
 
                     elif 'send' in item.body:
                         self.log.info('Sending raiblocks')
-                        self.prepare_send(commands, item)
+                        if len(commands) > 2:
+                            self.prepare_send(commands, item)
+                        else:
+                            reply_message = 'Sorry I could not parse your request.\n\nWhen making requests only put' + \
+                                            ' one command in the message body with no other text\n\nTry the "help"' + \
+                                            ' command\n\nMore info: ' \
+                                            + 'https://www.reddit.com/r/RaiBlocks_tipbot/wiki/index'
+                            item.reply(reply_message)
 
                     elif 'register' in item.body:
                         self.log.info("Already Registered")
