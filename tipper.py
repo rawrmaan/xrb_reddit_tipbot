@@ -81,7 +81,7 @@ class Tipper:
                                  "(https://www.reddit.com/r/RaiBlocks_tipbot/wiki/giveaway) for more info"
                 else:
                     reply_text = reply_text + 'The GiveAway bot is all out of gifts! Consider tipping this bot ' \
-                                              '"to replenish its gifts'
+                                              'to replenish its gifts'
                     reply_text = reply_text + "  \n\nGo to the [GiveAway Wiki]" + \
                                  "(https://www.reddit.com/r/RaiBlocks_tipbot/wiki/giveaway) for more info"
 
@@ -161,7 +161,7 @@ class Tipper:
                                       reply_text, rai_balance)
                     else:
                         reply_text = 'The GiveAway bot is all out of gifts! Consider tipping this bot ' \
-                                     '"to replenish its gifts'
+                                     'to replenish its gifts'
                         reply_text = reply_text + "  \n\nGo to the [GiveAway Wiki]" + \
                                      "(https://www.reddit.com/r/RaiBlocks_tipbot/wiki/giveaway) for more info"
                         self.comment_reply(comment, reply_text)
