@@ -158,9 +158,7 @@ class Tipper:
                 value = value[1:]
 
             float_val = float(value)
-            # Maximum tip per command is 5 XRB (currently valued $150)
-            # This is to prevent mistaken tips of large sums
-            if 0 < float_val < 5 and not math.isnan(float_val):
+            if not math.isnan(float_val):
                 return True
         except ValueError:
             return False
@@ -198,8 +196,7 @@ class Tipper:
                 self.comment_reply(comment,
                                    'Tip command is invalid. Tip with any of the following formats:  \n\n' +
                                    '`!tipxrb <username> <amount>`  \n\n`\u\RaiBlocks_TipBot <username> <amount>`  \n\n'
-                                   + '`\u\XRB4U <username> <amount>`  \n\n  Amount must be greater than 0'
-                                   + ' and less than 5  \n\nGo to the [wiki]' +
+                                   + '`\u\XRB4U <username> <amount>`  \n\nGo to the [wiki]' +
                                    '(https://www.reddit.com/r/RaiBlocks_tipbot/wiki/index) for more commands')
         record = dict(
             comment_id=comment.fullname, to=None, amount=None, author=comment.author.name)

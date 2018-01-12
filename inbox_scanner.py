@@ -147,7 +147,8 @@ class InboxScanner:
                     self.log.info(item.body)
                     if 'help' in item.body:
                         reply_message = 'Help\n\n Reply with the command in the body of text:\n\n  balance - get' \
-                                        + ' your balance\n\n  send <amount> <address>\n\nMore info: ' \
+                                        + ' your balance\n\n  send <amount> <address> - send XRB to an external ' \
+                                          'address\n\naddress - get your deposit address\n\nMore info: ' \
                                         + 'https://www.reddit.com/r/RaiBlocks_tipbot/wiki/index'
                         item.reply(reply_message)
 
