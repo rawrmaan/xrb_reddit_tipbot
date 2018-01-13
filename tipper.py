@@ -265,19 +265,18 @@ class Tipper:
         return False
 
     def process_single_parameter_tip(self, comment, amount):
-        # Is this a root comment?
-        is_root = comment.is_root
-        self.log.info("Root comment? " + str(comment.is_root))
-        if is_root:
-            receiving_user = comment.link_author
-        else:
-            # Get parent
-            parent = comment.parent()
-            receiving_user = parent.author.name
-            self.log.info("Parent: ")
-            self.log.info(vars(parent))
+        # Get parent
+        parent = comment.parent()
+        receiving_user = parent.author.name
+        self.log.info("Parent: ")
+        self.log.info(vars(parent))
 
-        self.process_command(comment, receiving_user, amount)
+        if receiving_user is not None and receiving_user.lower() != "giftxrb":
+            self.process_command(comment, receiving_user, amount)
+        else:
+            self.comment_reply(comment, 'Was I mentioned? I could not parse your request  \n\nGo to the [wiki]' +
+                               '(https://www.reddit.com/r/RaiBlocks_tipbot/wiki/giveaway) to learn about '
+                               'the GiveAway program')
 
     def parse_tip(self, comment):
         # get a reference to the table 'comments'
