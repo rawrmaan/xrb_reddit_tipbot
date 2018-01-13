@@ -291,10 +291,11 @@ class Tipper:
             self.process_single_parameter_tip(comment, amount)
 
     def parse_comment(self, comment, commands, mention):
-        if comment.author.name.lower() != 'giftxrb':
+        try:
             self.parse_tip(comment)
-        else:
-            reply_message = "Please do not gift the gift bot  \n\nSpread the gift to all others on Reddit!"
-            reply_message = reply_message + "  \n\nGo to the [GiveAway Wiki]" + \
-                            "(https://www.reddit.com/r/RaiBlocks_tipbot/wiki/giveaway) for more info"
+        except:
+            self.log.error("Unexpected error in send_tip: " + str(sys.exc_info()[0]))
+            tb = traceback.format_exc()
+            self.log.error(tb)
+            reply_message = "I'm sorry an error occurred. Paging /u/valentulus_menskr"
             self.comment_reply(comment, reply_message)
